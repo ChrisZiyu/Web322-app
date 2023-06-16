@@ -149,9 +149,6 @@ app.post('/posts/add', upload.single('featureImage'), (req, res) => {
         console.log('Error adding blog post:', error);
         res.redirect('/posts');
       });
-
-    // // Redirect to /posts or wherever you want to redirect after adding the post
-    // res.redirect('/posts');
   }
 });
 
