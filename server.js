@@ -193,20 +193,20 @@ app.get('/blog', async (req, res, next) => {
   const categoryId = (req.query.category);
   const postId = (req.query.id);
   
-  if (postId) {
-    try {
-      const posts = await blogService.getPublishedPosts();
-      console.log('post:', post); // Add this line to check the value of the post
-      posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
+  // if (postId) {
+  //   try {
+  //     const posts = await blogService.getPublishedPosts();
+  //     console.log('post:', post); // Add this line to check the value of the post
+  //     posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
 
-      const post = await blogService.getPostById(postId);
-      const categories = await blogService.getCategories();
-      res.render('blog', { data: { posts: [], posts, categories } });
-    } catch (error) {
-      console.log('Error:', error); // Add this line to check if any error occurs
-      res.render('blog', { data: { message: 'No resultaaaas' } });
-    }
-  }
+  //     const post = await blogService.getPostById(postId);
+  //     const categories = await blogService.getCategories();
+  //     res.render('blog', { data: { posts: [], posts, categories } });
+  //   } catch (error) {
+  //     console.log('Error:', error); // Add this line to check if any error occurs
+  //     res.render('blog', { data: { message: 'No resultaaaas' } });
+  //   }
+  // }
   if (categoryId) {
     // Redirect to the corresponding /blog/:id route
     res.redirect(`/blog/${categoryId}`);
@@ -217,22 +217,29 @@ app.get('/blog', async (req, res, next) => {
     try {
       let posts = [];
       let categories = [];
-
-      posts = await blogService.getPublishedPosts();
-      posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
-
+  
+      if (req.query.category) {
+        const category = req.query.category;
+        posts = await blogService.getPublishedPostsByCategory(category);
+        posts.sort((a, b) => new Date(a.postDate) - new Date(b.postDate));
+      } else {
+        posts = await blogService.getPublishedPosts();
+        posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
+      }
+      // console.log("Posts:", posts);
       const post = posts[0];
-
+      // console.log("Retrieving categories...");
       categories = await blogService.getCategories();
-
+      // console.log("Categories:", categories);
+  
       viewData.posts = posts;
       viewData.post = post;
       viewData.categories = categories;
     } catch (error) {
       viewData.message = "No results";
     }
-
-    res.render("blog", { data: viewData });
+  
+    res.render("blog", { data: viewData});
   }
 });
 

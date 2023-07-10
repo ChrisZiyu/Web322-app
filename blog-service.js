@@ -99,8 +99,13 @@ function getPostsByCategory(categoryId) {
       } else {
         const posts = await getAllPosts();
         const filteredPosts = posts.filter(post => post.published && post.category === categoryId);
+        const postsWithCategory = postsData.filter(post => post.category === parseInt(categoryId));
+        const postsContent = postsData.filter(post => post.category === categoryId);
         if (filteredPosts.length > 0) {
           resolve(filteredPosts);
+        } else if (postsContent.length > 0 || postsWithCategory.length > 0) {
+          const mergedPosts = [...postsContent, ...postsWithCategory];
+          resolve(mergedPosts);
         } else {
           reject("No results returned");
         }
@@ -110,6 +115,7 @@ function getPostsByCategory(categoryId) {
     }
   });
 }
+
 
   
   function getPostsByMinDate(minDateStr) {
@@ -125,7 +131,7 @@ function getPostsByCategory(categoryId) {
   }
   function getPostById(id) {
     return new Promise((resolve, reject) => {
-      const post = postsData.find(post => post.id ==id);
+      const post = postsData.find(post => post.id ===id);
       if (post) {
         resolve(post);
       } else {
@@ -144,16 +150,11 @@ function getCategories(){
     });
 }
 
-const dateFormat = function(date, format) {
-  const options = {
-    year: 'numeric',
-    month: format.includes('MM') ? '2-digit' : undefined,
-    day: format.includes('DD') ? '2-digit' : undefined,
-    hour: format.includes('HH') ? '2-digit' : undefined,
-    minute: format.includes('mm') ? '2-digit' : undefined,
-  };
-  const formattedDate = new Date(date).toLocaleString('en-US', options).split('-')[0];
-  return formattedDate;
+const dateFormat = function(date) {
+  const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+  const formattedDate = new Date(date).toLocaleDateString('en-US', options);
+  const [month, day, year] = formattedDate.split('/');
+  return `${year}-${month}-${day}`;
 };
 
 function addPost(postData) {
