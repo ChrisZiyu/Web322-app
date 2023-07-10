@@ -4,9 +4,9 @@
 * No part of this assignment has been copied manually or electronically from any other source
 * (including web sites) or distributed to other students.
 *
-* Name: Christian Ziyu Ukiike Student ID: 139915219 Date: 19/05/2023
+* Name: Christian Ziyu Ukiike Student ID: 139915219 Date: 7/9/2023
 *
-* Cyclic Web App URL: https://blushing-coat-worm.cyclic.app/about
+* Cyclic Web App URL: https://blushing-coat-worm.cyclic.app
 *
 * GitHub Repository URL: https://github.com/ChrisZiyu/Web322-app
 ********************************************************************************/ 
@@ -18,7 +18,10 @@ const path = require("path");
 const multer = require("multer");
 const cloudinary = require('cloudinary').v2
 const streamifier = require('streamifier')
+const exphbs = require('express-handlebars');
+const stripJs = require('strip-js');
 var app = express();
+
 
 cloudinary.config({ 
   cloud_name: 'dwup3hili', 
@@ -68,23 +71,55 @@ blogService.initialize()
   });
 
 
+  app.engine('.hbs', exphbs.engine({
+    extname: '.hbs',
+    helpers: {
+      navLink: function(url, options) {
+        return '<li' +
+          ((url == app.locals.activeRoute) ? ' class="active" ' : '') +
+          '><a href="' + url + '">' + options.fn(this) + '</a></li>';
+      },
+      equal: function(lvalue, rvalue, options) {
+        if (arguments.length < 3)
+          throw new Error("Handlebars Helper equal needs 2 parameters");
+        if (lvalue != rvalue) {
+          return options.inverse(this);
+        } else {
+          return options.fn(this);
+        }
+      },
+      safeHTML: function(context) {
+        return stripJs(context);
+      },
 
+    }
+  }));
+  
+  app.set('view engine', '.hbs');
+  
+  app.use(function(req, res, next) {
+    let route = req.path.substring(1);
+    app.locals.activeRoute = "/" + (isNaN(route.split('/')[1]) ? route.replace(/\/(?!.*)/, "") : route.replace(/\/(.*)/, ""));
+    app.locals.viewingCategory = req.query.category;
+    next();
+  });
+  
 
 // Serve static files from the 'public' folder
 app.use(express.static('public'));
 
 // setup a 'route' to listen on the default url path
 app.get("/", (req, res) => {
-    res.redirect("/about");
+    res.redirect("/blog");
 });
 
-// Return the about.html file from the views folder
+// Render about.hbs view template, 2nd argument adds the hbs to the main.hbs
 app.get("/about", (req, res) => {
-    res.sendFile(__dirname + "/views/about.html");
+    res.render("about",{ layout: "main" });
 });
-// Route for returning the addPost.html file
+// Render addPost.hbs View template, 2nd argument adds the hbs to the main.hbs
 app.get("/posts/add", (req, res) => {
-  res.sendFile(path.join(__dirname, "views/addPost.html"));
+  res.render("addPost", {layout: "main"});
 });
 
 //multer for posts add only
@@ -153,31 +188,86 @@ app.post('/posts/add', upload.single('featureImage'), (req, res) => {
 });
 
 
-
-
-// Route for returning published posts
-app.get("/blog", (req, res) => {
-  blogService.getPublishedPosts()
-    .then(publishedPosts => {
-      res.send(JSON.stringify(publishedPosts));
-    })
-    .catch(error => {
-      res.status(500).send("Error: " + error);
-    });
-});
+// Route for returning published posts by category
+app.get('/blog', async (req, res, next) => {
+  const categoryId = (req.query.category);
+  const postId = (req.query.id);
   
+  if (postId) {
+    try {
+      const posts = await blogService.getPublishedPosts();
+      console.log('post:', post); // Add this line to check the value of the post
+      posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
+
+      const post = await blogService.getPostById(postId);
+      const categories = await blogService.getCategories();
+      res.render('blog', { data: { posts: [], posts, categories } });
+    } catch (error) {
+      console.log('Error:', error); // Add this line to check if any error occurs
+      res.render('blog', { data: { message: 'No resultaaaas' } });
+    }
+  }
+  if (categoryId) {
+    // Redirect to the corresponding /blog/:id route
+    res.redirect(`/blog/${categoryId}`);
+  } else {
+    // Your existing code for handling the /blog route
+    let viewData = {};
+
+    try {
+      let posts = [];
+      let categories = [];
+
+      posts = await blogService.getPublishedPosts();
+      posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
+
+      const post = posts[0];
+
+      categories = await blogService.getCategories();
+
+      viewData.posts = posts;
+      viewData.post = post;
+      viewData.categories = categories;
+    } catch (error) {
+      viewData.message = "No results";
+    }
+
+    res.render("blog", { data: viewData });
+  }
+});
+
+
+app.get('/blog/:id', async (req, res) => {
+  const categoryId = parseInt(req.params.id);
+ 
+    try {
+      const posts = await blogService.getPostsByCategory(categoryId);
+      posts.sort((a, b) => new Date(b.postDate) - new Date(a.postDate));
+
+      const post = posts.length > 0 ? posts[0] : null;
+
+      const categories = await blogService.getCategories();
+      res.render('blog', { data: { posts, post, categories } });
+    } catch (error) {
+      console.log('Error:', error);
+      res.render('blog', { data: { message: 'No resuaaslts' } });
+    }
+  
+});
+
 app.get("/posts/:id", (req, res) => {
   const postId = parseInt(req.params.id);
 
   blogService
     .getPostById(postId)
     .then(post => {
-      res.send(JSON.stringify(post));
+      res.json(post)
     })
     .catch(error => {
       res.status(500).send("Error: " + error);
     });
 });
+
 // Route for returning all posts
 // Updated /posts route
 app.get("/posts", (req, res) => {
@@ -188,29 +278,28 @@ app.get("/posts", (req, res) => {
     blogService
       .getPostsByCategory(category)
       .then(filteredPosts => {
-        res.send(JSON.stringify(filteredPosts));
+        res.render("posts",{posts:filteredPosts});
       })
       .catch(error => {
-        res.status(500).send("Error: " + error);
+        res.render("posts",{message: "no results"});
       });
   } else if (minDate) {
     blogService
       .getPostsByMinDate(minDate)
       .then(filteredPosts => {
-        res.send(JSON.stringify(filteredPosts));
+        res.render("posts",{posts: filteredPosts});
       })
       .catch(error => {
-        res.status(500).send("Error: " + error);
+        res.render("posts",{message: "no results"});
       });
-  } else {
-    blogService
-      .getAllPosts()
-      .then(posts => {
-        res.send(JSON.stringify(posts));
-      })
-      .catch(error => {
-        res.status(500).send("Error: " + error);
-      });
+  }else{
+    blogService.getAllPosts()
+    .then(posts => {
+      res.render("posts", { posts: posts });
+    })
+    .catch(error => {
+      res.render("posts", { message: "No results" });
+    });
   }
 });
 
@@ -221,19 +310,19 @@ app.get("/posts", (req, res) => {
 app.get("/categories", (req, res) => {
   blogService.getCategories()
     .then(Categories => {
-      res.send(JSON.stringify(Categories));
+      res.render("categories",{categories:Categories});
     })
     .catch(error => {
-      res.status(404).send("Error: " + error);
+      res.render("categories",{message:"no results"});
     });
 });
   
 
-// 404 error- page not found
-  app.use((req, res) => {
-    res.status(404).send("404 - Page not found");
-    });
-  
+// 404 error - page not found
+app.use((req, res) => {
+  res.status(404).render("404", { data: { message: "Return to blog", path: req.path } });
+});
+
   // setup http server to listen on HTTP_PORT
   app.listen(HTTP_PORT,() => {
       console.log("Express http server listening on port",HTTP_PORT);

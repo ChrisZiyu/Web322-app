@@ -1,0 +1,54 @@
+<!--/*********************************************************************************
+* WEB322 – Assignment 2
+* I declare that this assignment is my own work in accordance with Seneca Academic Policy.
+* No part of this assignment has been copied manually or electronically from any other source
+* (including web sites) or distributed to other students.
+*
+* Name: Christian Ziyu Ukiike Student ID: 139915219 Date: 7/9/2023
+*
+* Cyclic Web App URL: https://blushing-coat-worm.cyclic.app
+*
+* GitHub Repository URL: https://github.com/ChrisZiyu/Web322-app
+********************************************************************************/ -->
+<div class="row">
+  <section class="main col-md-9">
+    <article>
+      {{#if data.post}}
+      <h2>{{data.post.title}}</h2>
+      <img src="{{data.post.featureImage}}" alt="feature Image" style="width:100%" />
+      <br /><br />
+      {{#safeHTML data.post.body}}
+      {{/safeHTML}}
+      <br /><br />
+      <strong>Category:</strong> {{data.post.category}}<br />
+      <strong>Last Updated:</strong> {{data.post.postDate}}
+      {{else}}
+      <div class="col-md-12 text-center">
+        <h2>{{data.message}}</h2>
+        <p>Please try another Post / Category</p>
+      </div>
+      {{/if}}
+    </article>
+  </section>
+
+  <aside class="col-md-3">
+    <br /><br />
+    {{#if data.posts}}
+    <h4>Posts</h4>
+    <ul class="list-group">
+      {{#each data.posts}}
+      <a href="/blog/{{this.id}}?category={{../viewingCategory}}" class="list-group-item">{{this.title}}</a>
+      {{/each}}
+    </ul>
+    {{/if}}
+    {{#if data.categories}}
+    <br /><br />
+    <h4>Categories</h4>
+    <ul class="list-group">
+      {{#each data.categories}}
+      <a href="/blog?category={{this.id}}" class="list-group-item">{{this.category}}</a>
+      {{/each}}
+    </ul>
+    {{/if}}
+  </aside>
+</div>

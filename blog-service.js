@@ -6,13 +6,15 @@
 *
 * Name: Christian Ziyu Ukiike Student ID: 139915219 Date: 19/05/2023
 *
-* Cyclic Web App URL: https://blushing-coat-worm.cyclic.app/about
+* Cyclic Web App URL: https://blushing-coat-worm.cyclic.app
 *
 * GitHub Repository URL: https://github.com/ChrisZiyu/helloworld
 *
 ********************************************************************************/ 
+const { error } = require('console');
 const fs = require('fs');
 const path = require('path');
+
 
 let postsData = [];
 let categoriesData = [];
@@ -76,18 +78,39 @@ function getPublishedPosts() {
       }
     });
 }
-function getPostsByCategory(category) {
-    return new Promise((resolve, reject) => {
-      const postsWithCategory = postsData.filter(post => post.category === parseInt(category));
-      const postsContent = postsData.filter(post => post.category === category);
-      if (postsContent || postsWithCategory.length > 0) {
-        const mergedPosts=[...postsContent, ...postsWithCategory]
-        resolve(mergedPosts);
+
+function getPublishedPostsByCategory(){
+  return new Promise ((resolve, reject)=>{
+  const publishedPostsByCategory= postsData.filter(post=>post.published && post.category===category);
+  if(publishedPostsByCategory.length > 0) {
+    resolve(publishedPostsByCategory);
+  }else{
+    reject("No results returned")
+  }  
+  });
+}
+
+function getPostsByCategory(categoryId) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const publishedPostsByCategory = postsData.filter(post => post.published && post.category === categoryId);
+      if (publishedPostsByCategory.length > 0) {
+        resolve(publishedPostsByCategory);
       } else {
-        reject("No posts found with the specified category");
+        const posts = await getAllPosts();
+        const filteredPosts = posts.filter(post => post.published && post.category === categoryId);
+        if (filteredPosts.length > 0) {
+          resolve(filteredPosts);
+        } else {
+          reject("No results returned");
+        }
       }
-    });
-  }
+    } catch (error) {
+      reject("Error retrieving published posts by category: " + error.message);
+    }
+  });
+}
+
   
   function getPostsByMinDate(minDateStr) {
     return new Promise((resolve, reject) => {
@@ -102,7 +125,7 @@ function getPostsByCategory(category) {
   }
   function getPostById(id) {
     return new Promise((resolve, reject) => {
-      const post = postsData.find(post => post.id === id);
+      const post = postsData.find(post => post.id ==id);
       if (post) {
         resolve(post);
       } else {
@@ -116,36 +139,49 @@ function getCategories(){
         if(categoriesData.length>0){
                 resolve(categoriesData);
         }else{
-            reject("aaa")
+            reject("No categories Found")
         }
     });
 }
 
-    function addPost(postData) {
-        return new Promise((resolve, reject) => {
-          // If postData.published is undefined, set it to false; otherwise, set it to true
-          postData.published = postData.published === undefined ? false : true;
-      
-          // Set the id property of postData to be the length of the "postsData" array plus one
-          postData.id = postsData.length + 1;
-      
-          // Push the updated postData to the "postsData" array
-          postsData.push(postData);
-      
-          // Resolve the promise with the updated value
-          resolve(postData);
-        });
-    }
+const dateFormat = function(date, format) {
+  const options = {
+    year: 'numeric',
+    month: format.includes('MM') ? '2-digit' : undefined,
+    day: format.includes('DD') ? '2-digit' : undefined,
+    hour: format.includes('HH') ? '2-digit' : undefined,
+    minute: format.includes('mm') ? '2-digit' : undefined,
+  };
+  const formattedDate = new Date(date).toLocaleString('en-US', options).split('-')[0];
+  return formattedDate;
+};
+
+function addPost(postData) {
+  return new Promise((resolve, reject) => {
+    // If postData.published is undefined, set it to false; otherwise, set it to true
+    postData.published = postData.published === undefined ? false : true;
+
+    // Set the postDate property of postData to the current date formatted using the dateFormat helper
+    const currentDate = new Date();
+    postData.postDate = dateFormat(currentDate, 'YYYY-MM-DD');
+
+    // Set the id property of postData to be the length of the "postsData" array plus one
+    postData.id = postsData.length + 1;
+
+    // Push the updated postData to the "postsData" array
+    postsData.push(postData);
+
+    // Resolve the promise with the updated value
+    resolve(postData);
+  });
+}
+
+
+
+
 
     
-    // Route functions
-     function allPosts() {
-       return JSON.stringify(postsData);
-    }
-    
-    function allCategories() {
-        return JSON.stringify(categoriesData);
-    }
+
 
     
     
@@ -157,8 +193,7 @@ module.exports = {
     getPostsByMinDate,
     getPostById,
     getCategories,
-    allPosts,
-    allCategories,
     addPost,
+    getPublishedPostsByCategory
     };
           
