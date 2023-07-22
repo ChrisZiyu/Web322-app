@@ -24,7 +24,7 @@ const app = express();
 
 
 
-const HTTP_PORT = process.env.PORT || 3000;
+const HTTP_PORT = process.env.PORT || 8080;
 
           
 cloudinary.config({ 
