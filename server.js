@@ -1,5 +1,5 @@
-/*********************************************************************************
-* WEB322 – Assignment 2
+<!--/*********************************************************************************
+* WEB322 – Assignment 5
 * I declare that this assignment is my own work in accordance with Seneca Academic Policy.
 * No part of this assignment has been copied manually or electronically from any other source
 * (including web sites) or distributed to other students.
@@ -9,7 +9,7 @@
 * Cyclic Web App URL: https://blushing-coat-worm.cyclic.app
 *
 * GitHub Repository URL: https://github.com/ChrisZiyu/Web322-app
-********************************************************************************/ 
+********************************************************************************/ -->
 
 
 const express = require('express');

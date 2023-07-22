@@ -1,16 +1,15 @@
 /*********************************************************************************
-* WEB322 – Assignment 2
+* WEB322 – Assignment 5
 * I declare that this assignment is my own work in accordance with Seneca Academic Policy.
 * No part of this assignment has been copied manually or electronically from any other source
 * (including web sites) or distributed to other students.
 *
-* Name: Christian Ziyu Ukiike Student ID: 139915219 Date: 19/05/2023
+* Name: Christian Ziyu Ukiike Student ID: 139915219 Date: 7/9/2023
 *
 * Cyclic Web App URL: https://blushing-coat-worm.cyclic.app
 *
-* GitHub Repository URL: https://github.com/ChrisZiyu/helloworld
-*
-********************************************************************************/ 
+* GitHub Repository URL: https://github.com/ChrisZiyu/Web322-app
+********************************************************************************/
 const { Sequelize } = require('sequelize');
 const { Op } = require('sequelize');
 
