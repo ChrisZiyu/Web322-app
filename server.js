@@ -26,11 +26,11 @@ const app = express();
 
 const HTTP_PORT = process.env.PORT || 8080;
 
-cloudinary.config({
-    cloud_name: 'cloud_name',
-    api_key: 'api_key',
-    api_secret: 'api_secret',
-    secure: true
+          
+cloudinary.config({ 
+  cloud_name: 'dwup3hili', 
+  api_key: '777482753413527', 
+  api_secret: '4rrEmjOUpae1UoGa4n4Jfbw6y5o' 
 });
 
 const upload = multer();
@@ -334,6 +334,7 @@ blogData.initialize().then(() => {
     app.listen(HTTP_PORT, () => {
         console.log('server listening on: ' + HTTP_PORT);
     });
+
 }).catch((err) => {
     console.log(err);
 })
