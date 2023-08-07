@@ -11,17 +11,16 @@
 * GitHub Repository URL: https://github.com/ChrisZiyu/Web322-app
 ********************************************************************************/ 
 
-
 const express = require('express');
+const app = express();
+const exphbs = require("express-handlebars");
+const clientSession= require("client-sessions");
 const blogData = require("./blog-service");
 const multer = require("multer");
 const cloudinary = require('cloudinary').v2;
 const streamifier = require('streamifier');
-const exphbs = require("express-handlebars");
 const stripJs = require('strip-js');
-
-const app = express();
-
+const authData = require('./auth-service');
 
 
 const HTTP_PORT = process.env.PORT || 8080;
@@ -66,8 +65,30 @@ app.engine(".hbs", exphbs.engine({
 
 app.set('view engine', '.hbs');
 
+// Setup client-sessions
+app.use(
+    clientSession({
+        cookieName: "session",//session that the user data will use to store the login data
+        secret: "week10example_web322",
+        duration: 2 * 60 * 1000,
+        activeDuration: 1000 * 60,
+    })
+);
+app.use(function (req, res, next) {
+    res.locals.session = req.session;
+    next();
+});
+
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
+
+function ensureLogin(req, res, next) {
+    if (!req.session.user) {
+      res.redirect("/login");
+    } else {
+      next();
+    }
+}
 
 app.use(function(req,res,next){
     let route = req.path.substring(1);
@@ -132,7 +153,79 @@ app.get('/blog', async (req, res) => {
 
 });
 
-app.get('/posts', (req, res) => {
+app.get('/register',(req,res)=>{
+    res.render('register');
+});
+
+app.post('/register', (req, res) => {
+    // Invoke the authData.RegisterUser(userData) method with the POST data (req.body)
+    authData.registerUser(req.body)
+    .then(() => {
+        // If the promise resolved successfully, render the register view with a success message
+        res.render('register', { successMessage: "User created" });
+    })
+    .catch((err) => {
+        // If the promise was rejected, render the register view with an error message
+        res.render('register', {
+            errorMessage: err,
+            userName: req.body.userName
+        });
+    });
+});
+app.get('/login',(req,res)=>{
+    res.render('login');
+});
+  
+app.post('/login', (req, res) => {
+    console.log('Login request received with user name:', req.body.userName);
+    req.body.userAgent = req.get('User-Agent');
+  
+    authData.checkUser(req.body)
+      .then((user) => {
+        console.log('User credentials verified for user:', user.userName);
+        console.log('User data:', user);
+        // Debug: Print the session object and its properties
+        console.log('Session object:', req.session);
+
+        // If the promise resolved successfully, add the returned user's data to the session
+        req.session.user = {
+          userName: user.userName,
+          email: user.email,
+          loginHistory: user.loginHistory
+        };
+        
+        // Debug: Print the updated session object
+        console.log('Updated session object:', req.session);
+
+        // Redirect to "/posts" view
+        res.redirect('/posts');
+      })
+      .catch((err) => {
+        console.error('Login error:', err);
+  
+        // If the promise was rejected, render the login view with an error message
+        res.render('login', {
+          errorMessage: err,
+          userName: req.body.userName
+        });
+      });
+});
+ 
+
+   
+
+app.get('/logout', (req, res) => {
+    // Reset the session
+    req.session.reset();
+    // Redirect the user to the "/" route
+    res.redirect('/');
+});
+app.get('/userHistory', ensureLogin, (req, res) => {
+    // Render the "userHistory" view without any data
+    res.render('userHistory');
+});
+  
+app.get('/posts',ensureLogin, (req, res) => {
     let queryPromise = null;
 
     if (req.query.category) {
@@ -157,7 +250,7 @@ app.get('/posts', (req, res) => {
 });
 
 
-app.post("/posts/add", upload.single("featureImage"), (req,res)=>{
+app.post("/posts/add", upload.single("featureImage"), ensureLogin, (req,res)=>{//maybe error
 
     if(req.file){
         let streamUpload = (req) => {
@@ -200,7 +293,7 @@ app.post("/posts/add", upload.single("featureImage"), (req,res)=>{
     }   
 });
 
-app.get('/posts/add', (req, res) => {
+app.get('/posts/add',ensureLogin, (req, res) => {
     blogData.getCategories()
       .then(categories => {
         res.render("addPost", { categories: categories });
@@ -211,9 +304,10 @@ app.get('/posts/add', (req, res) => {
   });
   
 
-app.get('/post/:id', (req,res)=>{
+app.get('/post/:id',ensureLogin, (req,res)=>{
     blogData.getPostById(req.params.id).then(data=>{
         res.json(data);
+        console.log(data)
     }).catch(err=>{
         res.json({message: err});
     });
@@ -269,7 +363,7 @@ app.get('/blog/:id', async (req, res) => {
     res.render("blog", {data: viewData})
 });
 
-app.get('/categories', (req, res) => {
+app.get('/categories',ensureLogin, (req, res) => {
     blogData.getCategories().then((data => {
         if(data.length>0){
             res.render("categories", {categories: data});
@@ -281,7 +375,7 @@ app.get('/categories', (req, res) => {
     });
 });
 
-app.get('/categories/add', (req, res) => {
+app.get('/categories/add', ensureLogin, (req, res) => {
     res.render('addCategory', { layout: 'main' });
 });
 
@@ -300,7 +394,7 @@ app.post('/categories/add', async (req, res) => {
     }
   });
 
-app.get('/categories/delete/:id', (req, res) => {
+app.get('/categories/delete/:id', ensureLogin, (req, res) => {
     const categoryId = parseInt(req.params.id);
 
     blogData.deleteCategoryById(categoryId)
@@ -314,7 +408,7 @@ app.get('/categories/delete/:id', (req, res) => {
 });
 
 // New route to handle the deletion of a post by its ID
-app.get('/posts/delete/:id', (req, res) => {
+app.get('/posts/delete/:id', ensureLogin, (req, res) => {
     const postId = parseInt(req.params.id);
 
     blogData.deletePostById(postId)
@@ -330,11 +424,12 @@ app.use((req, res) => {
     res.status(404).render("404");
 })
 
-blogData.initialize().then(() => {
-    app.listen(HTTP_PORT, () => {
-        console.log('server listening on: ' + HTTP_PORT);
-    });
-
-}).catch((err) => {
-    console.log(err);
-})
+blogData.initialize()
+.then(authData.initialize)
+.then(function(){
+app.listen(HTTP_PORT, function(){
+console.log("app listening on: " + HTTP_PORT)
+});
+}).catch(function(err){
+console.log("unable to start server: " + err);
+});

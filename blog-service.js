@@ -185,6 +185,22 @@ function getPostById(categoryID) {
     });
   });
 }
+function getPostById(postId) {
+  return new Promise((resolve, reject) => {
+    Post.findByPk(postId)
+      .then((post) => {
+        if (post) {
+          resolve(post);
+        } else {
+          reject("No results returned");
+        }
+      })
+      .catch((error) => {
+        console.error('Error fetching post by ID:', error);
+        reject("No results returned");
+      });
+  });
+}
 
 function getCategories() {
   return new Promise((resolve, reject) => {
